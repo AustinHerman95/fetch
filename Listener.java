@@ -1,4 +1,4 @@
-package com.example.overlordsupreme.fetch1;
+package com.example.[USER].fetch1;
 
 import android.annotation.TargetApi;
 import android.app.ActivityManager;
@@ -30,6 +30,8 @@ import be.tarsos.dsp.onsets.PercussionOnsetDetector;
  * TODO: Customize class - update intent actions, extra parameters and static
  * helper methods.
  */
+ 
+ //A service that simply listens for a clap
 public class Listener extends IntentService {
 
     public static int SAMPLE_RATE = 1024;
@@ -60,10 +62,14 @@ public class Listener extends IntentService {
                 }, sensitivity, threshold);
         mDispatcher.addAudioProcessor(mPercussionDetector);
 
+        //start the listener tool with the given settings
         new Thread(mDispatcher).start();
     }
 
+    //for when a clap is detected
     void clapDetected(){
+        
+        //THIS is junk right now, still testing everything
         /*if(this.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
             CameraManager cam = (CameraManager) getSystemService(this.CAMERA_SERVICE);
             String mCameraID;
@@ -84,6 +90,8 @@ public class Listener extends IntentService {
                 }
         }*/
 
+        //It'll complain that the camera and parameters classes are deprecated, just ignore it
+        //the old classes are still useable and we want to build for lower API's
         Camera cam = Camera.open();
         Camera.Parameters p = cam.getParameters();
         p.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
@@ -92,16 +100,17 @@ public class Listener extends IntentService {
 
     }
 
+    //set the listening bool to false
+    //can be hard coded so probably will be deleted once we figure out how to handle when the service should be stopped
     void stopListening(){
         listening = false;
     }
 
+    //gets the bool, used for the screen lock detection service
     static public boolean isListening(){
         if(listening){
             return true;
         }
         return false;
     }
-
-
 }
