@@ -1,4 +1,4 @@
-package com.example.overlordsupreme.fetch1;
+package com.example.[USER].fetch1;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -13,9 +13,12 @@ public class Home extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
+        //Start the screen lock service
         Intent intent = new Intent(this, ScreenLockService.class);
         startService(intent);
 
+
+        //EXTRA junk, probably will delete this
         //Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         //setSupportActionBar(toolbar);
 
@@ -29,6 +32,7 @@ public class Home extends Activity {
         });*/
     }
 
+    //Called when a check box on the home screen is clicked or unclicked
     public void onHomeBoxChecked(View view){
 
         //Get if the box was checked or unchecked
@@ -44,6 +48,9 @@ public class Home extends Activity {
                     //Disable services flag
                 }
                 break;
+            //I want to send a bundle containing a boolean for if the flash/vibrate/sound etc is enabled/disabled
+            //In this case info  is some container and flash is a boolean.
+            //Still working on this
             case R.id.flashBox:
                 if (checked){
                     //Enable info.flash
@@ -55,12 +62,14 @@ public class Home extends Activity {
         }
     }
 
-
+    //Run the info page activity if the info button was pressed
     public void onInfoPageClicked(View view){
         Intent intent = new Intent(this, InfoPage.class);
         startActivity(intent);
         //start infoPage activity
     }
+    
+    //USELESS junk. Probably will delete this too
     /*@Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
