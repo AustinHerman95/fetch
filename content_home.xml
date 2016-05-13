@@ -9,9 +9,10 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context="com.example.overlordsupreme.fetch1.Home"
+    tools:context="com.example.[USER].fetch1.Home"
     tools:showIn="@layout/activity_home">
 
+    //The on/off check box
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -23,6 +24,7 @@
         android:onClick="onHomeBoxChecked"
         android:checked="true" />
 
+    //The camera flash check box
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -33,6 +35,7 @@
         android:layout_marginTop="70dp"
         android:onClick="onHomeBoxChecked"/>
 
+    //Title text
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -43,6 +46,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="10dp"  />
 
+    //The info page button
     <Button
         style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
