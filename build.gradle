@@ -1,11 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
+    //This is a high sdk so we might lower it
     compileSdkVersion 23
     buildToolsVersion "23.0.2"
 
     defaultConfig {
-        applicationId "com.example.overlordsupreme.fetch1"
+        applicationId "com.example.[USER].fetch1"
+        //Most likely going to change this. 22 is pretty high
         minSdkVersion 22
         targetSdkVersion 23
         versionCode 1
@@ -19,6 +21,8 @@ android {
     }
 }
 
+//Make sure your gradle looks like this. 
+//This ensures the libraries we're using are included (TarsosDSP is the only one so far)
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
