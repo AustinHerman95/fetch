@@ -1,4 +1,4 @@
-package com.example.[USER].fetch1;
+package com.example.overlordsupreme.fetch1;
 
 import android.annotation.TargetApi;
 import android.app.ActivityManager;
@@ -11,8 +11,13 @@ import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.media.MediaRecorder;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
+import android.os.Vibrator;
 import android.util.Log;
 import java.io.IOException;
 import java.security.Policy;
@@ -30,27 +35,31 @@ import be.tarsos.dsp.onsets.PercussionOnsetDetector;
  * TODO: Customize class - update intent actions, extra parameters and static
  * helper methods.
  */
- 
- //A service that simply listens for a clap
 public class Listener extends IntentService {
 
     public static int SAMPLE_RATE = 1024;
     public static int BUFFER_OVERLAP = 512;
     public static String TAG = "Listener";
+    private boolean flash;
+    private int mSensitivity;
     static private boolean listening;
 
     public Listener(){
         super("Listener");
     }
 
-    protected void onHandleIntent(Intent Intent) {
+    protected void onHandleIntent(Intent intent) {
 
         listening = true;
+
+        Bundle extra = intent.getExtras();
+        flash = extra.getBoolean("FLASH");
+        mSensitivity = extra.getInt("SENSITIVITY");
 
         AudioDispatcher mDispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
 
         double threshold = 8;
-        double sensitivity = 20;
+        double sensitivity = (int) mSensitivity;
 
         PercussionOnsetDetector mPercussionDetector = new PercussionOnsetDetector(22050, 1024,
                 new OnsetHandler() {
@@ -62,14 +71,10 @@ public class Listener extends IntentService {
                 }, sensitivity, threshold);
         mDispatcher.addAudioProcessor(mPercussionDetector);
 
-        //start the listener tool with the given settings
         new Thread(mDispatcher).start();
     }
 
-    //for when a clap is detected
     void clapDetected(){
-        
-        //THIS is junk right now, still testing everything
         /*if(this.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
             CameraManager cam = (CameraManager) getSystemService(this.CAMERA_SERVICE);
             String mCameraID;
@@ -90,27 +95,34 @@ public class Listener extends IntentService {
                 }
         }*/
 
-        //It'll complain that the camera and parameters classes are deprecated, just ignore it
-        //the old classes are still useable and we want to build for lower API's
-        Camera cam = Camera.open();
-        Camera.Parameters p = cam.getParameters();
-        p.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
-        cam.setParameters(p);
-        cam.startPreview();
+        if(flash){
+            Camera cam = Camera.open();
+            Camera.Parameters p = cam.getParameters();
+            p.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+            cam.setParameters(p);
+            cam.startPreview();
+        }
+        Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
+        // Vibrate for 500 milliseconds
+        v.vibrate(500);
+
+        try {
+            Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
+            r.play();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 
-    //set the listening bool to false
-    //can be hard coded so probably will be deleted once we figure out how to handle when the service should be stopped
     void stopListening(){
         listening = false;
     }
 
-    //gets the bool, used for the screen lock detection service
     static public boolean isListening(){
-        if(listening){
-            return true;
-        }
-        return false;
+       return listening;
     }
+
+
 }
