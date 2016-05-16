@@ -28,16 +28,19 @@ public class ScreenLockService extends IntentService {
     protected void onHandleIntent(Intent intent) {
 
         ScreenLockRunning = true;
+        //get the flash/sensitivity values to be sent to the listener service
         Bundle extra = intent.getExtras();
         flash = extra.getBoolean("FLASH");
         sensitivity = extra.getInt("SENSITIVITY");
 
+        //start a new thread to check if the screen is locked
         new Thread(
                 new Runnable() {
                     @Override
                     public void run() {
-
+                        //this ensures the thread will constantly be checking for this... I think... needs testing
                         while(!Thread.interrupted()) {
+                            //if the screen is locked start listener else stop listener
                             KeyguardManager myKeyManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
                             if (myKeyManager.inKeyguardRestrictedInputMode()) {
                                 startListener();
@@ -52,6 +55,7 @@ public class ScreenLockService extends IntentService {
     }
 
     protected void startListener(){
+        //if the listener is NOT already running, start the listener
         Intent listenerIntent = new Intent(this, Listener.class);
         if(!Listener.isListening()) {
             listenerIntent.setAction("com.example.fetch1.Listener");
@@ -62,6 +66,7 @@ public class ScreenLockService extends IntentService {
         }
     }
     protected void stopListener(){
+        //if the listener IS running, stop the listener
         Intent listenerIntent = new Intent(this, Listener.class);
         if(Listener.isListening()) {
             listenerIntent.addCategory(TAG);
