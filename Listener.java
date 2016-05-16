@@ -41,7 +41,6 @@ public class Listener extends IntentService {
     public static int BUFFER_OVERLAP = 512;
     public static String TAG = "Listener";
     private boolean flash;
-    private int mSensitivity;
     static private boolean listening;
 
     public Listener(){
@@ -49,19 +48,22 @@ public class Listener extends IntentService {
     }
 
     protected void onHandleIntent(Intent intent) {
-
+        int mSensitivity;
         listening = true;
 
+        //get the sensitivity and flash values
         Bundle extra = intent.getExtras();
         flash = extra.getBoolean("FLASH");
         mSensitivity = extra.getInt("SENSITIVITY");
 
+        //set up new audio factory and percussion values
         AudioDispatcher mDispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
-
         double threshold = 8;
         double sensitivity = (int) mSensitivity;
 
+        //create percussion detector object with instructions for when a clap is heard
         PercussionOnsetDetector mPercussionDetector = new PercussionOnsetDetector(22050, 1024,
+                //if a clap was heard do this:
                 new OnsetHandler() {
                     @Override
                     public void handleOnset(double time, double salience) {
@@ -69,32 +71,17 @@ public class Listener extends IntentService {
                         clapDetected();
                     }
                 }, sensitivity, threshold);
-        mDispatcher.addAudioProcessor(mPercussionDetector);
 
+        //add object to audio processor
+        mDispatcher.addAudioProcessor(mPercussionDetector);
+        //start a thread to begin listening
         new Thread(mDispatcher).start();
     }
 
     void clapDetected(){
-        /*if(this.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
-            CameraManager cam = (CameraManager) getSystemService(this.CAMERA_SERVICE);
-            String mCameraID;
-            try {
-                for (String cameraID : cam.getCameraIdList()) {
-                    CameraCharacteristics camChar = cam.getCameraCharacteristics(cameraID);
-
-                    if (camChar.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
-                        continue;
-                    }
-                    mCameraID = cameraID;
-                    cam.setTorchMode(mCameraID, true);
-                    break;
-                }
-            }
-                catch(CameraAccessException e){
-                    Log.e("Camera Access Exception", e.getMessage());
-                }
-        }*/
-
+        //if the flash value is true
+        //these methods/classes are deprecated but will still work
+        //we want to build for low API so more users can use the app of course
         if(flash){
             Camera cam = Camera.open();
             Camera.Parameters p = cam.getParameters();
@@ -102,10 +89,12 @@ public class Listener extends IntentService {
             cam.setParameters(p);
             cam.startPreview();
         }
+        //set off the vibrator - giggity
         Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
         // Vibrate for 500 milliseconds
         v.vibrate(500);
 
+        //try to set off a notification ringtone
         try {
             Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
             Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
