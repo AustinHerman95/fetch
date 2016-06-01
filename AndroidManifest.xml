@@ -2,29 +2,28 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.[USER].fetch1">
 
-    //Add these lines, gives hardware permissions
     <uses-permission android:name="android.permission.FLASHLIGHT"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera2"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:icon="@mipmap/icon"
+        android:label="Fetch"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        //The home activity
         <activity
             android:name=".Home"
-            android:label="@string/app_name"
+            android:label="Fetch"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
-            //Info page activity
             android:name=".InfoPage"
             android:label="@string/title_activity_info_page"
             android:parentActivityName=".Home"
@@ -34,12 +33,13 @@
                 android:value="com.example.[USER].fetch1.Home" />
         </activity>
 
-        //The two services we're using
         <service
             android:name=".ScreenLockService"
+            android:process=":ScreenLockService"
             android:exported="false" />
         <service
             android:name=".Listener"
+            android:process=":Listener"
             android:exported="false"/>
     </application>
 
