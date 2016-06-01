@@ -1,10 +1,16 @@
 package com.example.overlordsupreme.fetch1;
 
+import android.app.ActivityManager;
 import android.app.IntentService;
 import android.app.KeyguardManager;
 import android.content.Intent;
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
+import android.os.Process;
+
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * An {@link IntentService} subclass for handling asynchronous task requests in
@@ -32,9 +38,10 @@ public class ScreenLockService extends IntentService {
         Bundle extra = intent.getExtras();
         flash = extra.getBoolean("FLASH");
         sensitivity = extra.getInt("SENSITIVITY");
+        boolean checkScreenAlive;
 
         //start a new thread to check if the screen is locked
-        new Thread(
+        Thread checkScreen = new Thread(
                 new Runnable() {
                     @Override
                     public void run() {
@@ -51,13 +58,32 @@ public class ScreenLockService extends IntentService {
                         }
                     }
                 }
-        ).start();
+        );
+        checkScreen.setName("checkScreen");
+        checkScreen.start();
+        checkScreenAlive = true;
+
+        while(checkScreenAlive){
+            if(!checkScreen.isAlive()){
+                Log.d(TAG, "Restarting check screen!");
+                checkScreen.start();
+            }
+        }
     }
 
     protected void startListener(){
         //if the listener is NOT already running, start the listener
+
+        ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if ("com.example.Listener".equals(service.service.getClassName())) {
+                stopListener();
+            }
+        }
+
         Intent listenerIntent = new Intent(this, Listener.class);
         if(!Listener.isListening()) {
+            Log.d(TAG, "Starting Listener");
             listenerIntent.setAction("com.example.fetch1.Listener");
             listenerIntent.addCategory(TAG);
             listenerIntent.putExtra("FLASH", flash);
@@ -67,11 +93,34 @@ public class ScreenLockService extends IntentService {
     }
     protected void stopListener(){
         //if the listener IS running, stop the listener
-        Intent listenerIntent = new Intent(this, Listener.class);
+        ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = am.getRunningAppProcesses();
+
+        Iterator<ActivityManager.RunningAppProcessInfo> iterate = runningAppProcesses.iterator();
+
+        while(iterate.hasNext()){
+            ActivityManager.RunningAppProcessInfo next = iterate.next();
+
+            String processName = getPackageName() + ":Listener";
+
+            if(next.processName.equals(processName)){
+                Process.killProcess(next.pid);
+                break;
+            }
+        }
+        /*Intent listenerIntent = new Intent(this, Listener.class);
         if(Listener.isListening()) {
+            Log.d(TAG, "Stopping Listener");
             listenerIntent.addCategory(TAG);
             stopService(listenerIntent);
-        }
+        }*/
+    }
+
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+        Log.i(TAG, "Destroying SLS");
+        ScreenLockRunning = false;
     }
 
     static public boolean isRunning(){
