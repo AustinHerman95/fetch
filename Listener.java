@@ -48,6 +48,7 @@ public class Listener extends IntentService {
     }
 
     protected void onHandleIntent(Intent intent) {
+
         int mSensitivity;
         listening = true;
 
@@ -60,6 +61,8 @@ public class Listener extends IntentService {
         AudioDispatcher mDispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
         double threshold = 8;
         double sensitivity = (int) mSensitivity;
+
+        Log.d(TAG, "Sensitivity: " + Double.toString(sensitivity));
 
         //create percussion detector object with instructions for when a clap is heard
         PercussionOnsetDetector mPercussionDetector = new PercussionOnsetDetector(22050, 1024,
@@ -75,10 +78,13 @@ public class Listener extends IntentService {
         //add object to audio processor
         mDispatcher.addAudioProcessor(mPercussionDetector);
         //start a thread to begin listening
-        new Thread(mDispatcher).start();
+        Thread audioDispatcher = new Thread(mDispatcher);
+        audioDispatcher.setName("Audio Dispatcher Thread");
+        audioDispatcher.start();
     }
 
     void clapDetected(){
+
         //if the flash value is true
         //these methods/classes are deprecated but will still work
         //we want to build for low API so more users can use the app of course
@@ -105,7 +111,10 @@ public class Listener extends IntentService {
 
     }
 
-    void stopListening(){
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+        Log.i(TAG, "Destroying Listener");
         listening = false;
     }
 
