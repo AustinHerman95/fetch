@@ -6,11 +6,9 @@ import android.app.KeyguardManager;
 import android.content.Intent;
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
-import android.os.Process;
-
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * An {@link IntentService} subclass for handling asynchronous task requests in
@@ -24,7 +22,7 @@ public class ScreenLockService extends IntentService {
     public static final String TAG = "ScreenLockService";
     private boolean flash;
     private int sensitivity;
-    static private boolean ScreenLockRunning;
+    static boolean stopFlag;
 
     public ScreenLockService() {
         super("ScreenLockService");
@@ -32,13 +30,28 @@ public class ScreenLockService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
+        stopFlag = false;
 
-        ScreenLockRunning = true;
         //get the flash/sensitivity values to be sent to the listener service
         Bundle extra = intent.getExtras();
         flash = extra.getBoolean("FLASH");
         sensitivity = extra.getInt("SENSITIVITY");
         boolean checkScreenAlive;
+
+        final Handler handler = new Handler() {
+            @Override
+            public void handleMessage(Message msg){
+                Bundle bundle = msg.getData();
+                Boolean screenState = bundle.getBoolean("ScreenState");
+                if(screenState){
+                    startListener();
+                    stopFlag = true;
+                }
+                else if(!screenState){
+                    stopListener();
+                }
+            }
+        };
 
         //start a new thread to check if the screen is locked
         Thread checkScreen = new Thread(
@@ -47,19 +60,30 @@ public class ScreenLockService extends IntentService {
                     public void run() {
                         //this ensures the thread will constantly be checking for this... I think... needs testing
                         while(!Thread.interrupted()) {
+                            Message msg = handler.obtainMessage();
+                            Bundle bundle = new Bundle();
+
                             //if the screen is locked start listener else stop listener
                             KeyguardManager myKeyManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
                             if (myKeyManager.inKeyguardRestrictedInputMode()) {
-                                startListener();
+                                //startListener();
+                                //stopFlag = true;
+                                bundle.putBoolean("ScreenState", true);
+                                msg.setData(bundle);
+                                handler.sendMessage(msg);
                             }
-                            else{
-                                stopListener();
+                            else if(!myKeyManager.inKeyguardRestrictedInputMode() && stopFlag){
+                                //stopListener();
+                                bundle.putBoolean("ScreenState", false);
+                                msg.setData(bundle);
+                                handler.sendMessage(msg);
                             }
                         }
                     }
                 }
         );
         checkScreen.setName("checkScreen");
+        Log.d(TAG, "Starting SLS thread");
         checkScreen.start();
         checkScreenAlive = true;
 
@@ -72,58 +96,38 @@ public class ScreenLockService extends IntentService {
     }
 
     protected void startListener(){
-        //if the listener is NOT already running, start the listener
-
-        ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if ("com.example.Listener".equals(service.service.getClassName())) {
-                stopListener();
-            }
-        }
-
-        Intent listenerIntent = new Intent(this, Listener.class);
-        if(!Listener.isListening()) {
+        if(!isMyServiceRunning(Listener.class)) {
             Log.d(TAG, "Starting Listener");
-            listenerIntent.setAction("com.example.fetch1.Listener");
-            listenerIntent.addCategory(TAG);
+            Intent listenerIntent = new Intent(this, Listener.class);
             listenerIntent.putExtra("FLASH", flash);
             listenerIntent.putExtra("SENSITIVITY", sensitivity);
             startService(listenerIntent);
         }
     }
     protected void stopListener(){
-        //if the listener IS running, stop the listener
-        ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-        List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = am.getRunningAppProcesses();
+        if(isMyServiceRunning(Listener.class)) {
+            Log.d(TAG, "Stopping Listener");
+            Intent listenerIntent = new Intent(this, Listener.class);
+            stopService(listenerIntent);
+        }
+    }
 
-        Iterator<ActivityManager.RunningAppProcessInfo> iterate = runningAppProcesses.iterator();
-
-        while(iterate.hasNext()){
-            ActivityManager.RunningAppProcessInfo next = iterate.next();
-
-            String processName = getPackageName() + ":Listener";
-
-            if(next.processName.equals(processName)){
-                Process.killProcess(next.pid);
-                break;
+    private boolean isMyServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                Log.d(TAG, "Listener service already running");
+                return true;
             }
         }
-        /*Intent listenerIntent = new Intent(this, Listener.class);
-        if(Listener.isListening()) {
-            Log.d(TAG, "Stopping Listener");
-            listenerIntent.addCategory(TAG);
-            stopService(listenerIntent);
-        }*/
+        Log.d(TAG, "Listener service not running");
+        return false;
     }
 
     @Override
     public void onDestroy(){
+        Log.d(TAG, "Destroying SLS");
         super.onDestroy();
-        Log.i(TAG, "Destroying SLS");
-        ScreenLockRunning = false;
     }
 
-    static public boolean isRunning(){
-        return ScreenLockRunning;
-    }
 }
