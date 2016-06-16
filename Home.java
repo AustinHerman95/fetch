@@ -38,13 +38,9 @@ public class Home extends Activity {
         //set up the seekbar and the progress text
         SeekBar seekbar;
         seekbar = (SeekBar) findViewById(R.id.Sensitivity);
-        /*TextView sensitivityText;
-        sensitivityText = (TextView) findViewById(R.id.SensitivityText);
-        sensitivityText.setText("Sensitivity:" + seekbar.getProgress());*/
 
         //write what happens when the user changes the seek bar
         seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-
 
             //when the user releases the slider
             @Override
@@ -85,52 +81,20 @@ public class Home extends Activity {
             //the ON/OFF check box - works I think, doesn't throw any exceptions
             case R.id.appOnBox:
                 if (checked){
-
-                    ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-                    for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-                        if ("com.example.ScreenLockService".equals(service.service.getClassName())) {
-
-                        }
-                    }
-
-
                     //Start the Screen Lock Service
                     Intent SLS = new Intent(this, ScreenLockService.class);
-                    if(!ScreenLockService.isRunning()){
-                        Log.d(TAG, "Starting Screen Lock Service");
-                        SLS.setAction("com.example.fetch1.ScreenLockService");
-                        SLS.putExtra("FLASH", flash);
-                        SLS.putExtra("SENSITIVITY", sensitivity);
-                        startService(SLS);
-                    }
+                    SLS.setAction("com.example.fetch1.ScreenLockService");
+                    SLS.putExtra("FLASH", flash);
+                    SLS.putExtra("SENSITIVITY", sensitivity);
+                    startService(SLS);
+                    Log.d(TAG, "Started SLS");
                 }
                 else{
                     //Stop the Screen Lock Service
-
-                    ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-                    List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = am.getRunningAppProcesses();
-
-                    Iterator<ActivityManager.RunningAppProcessInfo> iterate = runningAppProcesses.iterator();
-
-                    while(iterate.hasNext()){
-                        ActivityManager.RunningAppProcessInfo next = iterate.next();
-
-                        String processName = getPackageName() + ":ScreenLockService";
-
-                        if(next.processName.equals(processName)){
-                            Process.killProcess(next.pid);
-                            break;
-                        }
-                    }
-
-                    /*Intent SLS = new Intent(this, ScreenLockService.class);
-                    if(ScreenLockService.isRunning()){
-                        Log.d(TAG, "Stopping Screen Lock Service");
-                        SLS.setAction("com.example.fetch1.ScreenLockService");
-                        SLS.putExtra("FLASH", flash);
-                        SLS.putExtra("SENSITIVITY", sensitivity);
-                        stopService(SLS);
-                    }*/
+                    Intent intent = new Intent(getApplicationContext(), ScreenLockService.class);
+                    intent.addCategory(TAG);
+                    stopService(intent);
+                    Log.d(TAG, "Stopped SLS");
                 }
                 break;
             //the flash light check box *does NOT work - check issues on github
@@ -162,6 +126,5 @@ public class Home extends Activity {
     public void onInfoPageClicked(View view){
         Intent intent = new Intent(this, InfoPage.class);
         startActivity(intent);
-        //start infoPage activity
     }
 }
