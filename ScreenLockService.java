@@ -10,6 +10,9 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 /**
  * An {@link IntentService} subclass for handling asynchronous task requests in
  * a service on a separate handler thread.
@@ -22,61 +25,80 @@ public class ScreenLockService extends IntentService {
     public static final String TAG = "ScreenLockService";
     private boolean flash;
     private int sensitivity;
-    static boolean stopFlag;
 
     public ScreenLockService() {
         super("ScreenLockService");
     }
 
+    /*final Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg){
+            Bundle bundle = msg.getData();
+            Boolean screenState = bundle.getBoolean("ScreenState");
+            if(screenState){
+                startListener();
+                stopFlag = true;
+            }
+            else if(!screenState){
+                stopListener();
+            }
+        }
+    };*/
+
     @Override
     protected void onHandleIntent(Intent intent) {
-        stopFlag = false;
-
         //get the flash/sensitivity values to be sent to the listener service
         Bundle extra = intent.getExtras();
         flash = extra.getBoolean("FLASH");
         sensitivity = extra.getInt("SENSITIVITY");
         boolean checkScreenAlive;
 
-        final Handler handler = new Handler() {
-            @Override
-            public void handleMessage(Message msg){
-                Bundle bundle = msg.getData();
-                Boolean screenState = bundle.getBoolean("ScreenState");
-                if(screenState){
-                    startListener();
-                    stopFlag = true;
-                }
-                else if(!screenState){
-                    stopListener();
-                }
-            }
-        };
-
         //start a new thread to check if the screen is locked
         Thread checkScreen = new Thread(
                 new Runnable() {
                     @Override
                     public void run() {
-                        //this ensures the thread will constantly be checking for this... I think... needs testing
-                        while(!Thread.interrupted()) {
-                            Message msg = handler.obtainMessage();
-                            Bundle bundle = new Bundle();
 
-                            //if the screen is locked start listener else stop listener
-                            KeyguardManager myKeyManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
-                            if (myKeyManager.inKeyguardRestrictedInputMode()) {
-                                //startListener();
-                                //stopFlag = true;
-                                bundle.putBoolean("ScreenState", true);
-                                msg.setData(bundle);
-                                handler.sendMessage(msg);
+                        Boolean lockInput = false;
+
+                        while(!Thread.interrupted()) {
+
+                            KeyguardManager firstKeyManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+                            if (firstKeyManager.inKeyguardRestrictedInputMode()) {
+                                lockInput = true;
                             }
-                            else if(!myKeyManager.inKeyguardRestrictedInputMode() && stopFlag){
-                                //stopListener();
-                                bundle.putBoolean("ScreenState", false);
-                                msg.setData(bundle);
-                                handler.sendMessage(msg);
+
+                            if(lockInput) {
+                                lockInput = false; //Only want this called once per check
+
+                                //Put a timer here do slow the app down and figure out what's going wrong
+                                new Timer().schedule(
+                                        new TimerTask() {
+
+                                            @Override
+                                            public void run() {
+
+                                                //if the screen is locked start listener service else stop listener service (METHODS WITHIN THIS SERVICE HANDLE THIS)
+                                                KeyguardManager secondKeyManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+
+                                                if (secondKeyManager.inKeyguardRestrictedInputMode()) {
+                                                    startListener();
+                                                }
+                                                else{
+                                                    stopListener();
+                                                }
+                                            }
+                                        }, 100 //Fire of the check almost instantly
+                                );
+                            }
+                            else{
+                                stopListener();
+                            }
+
+                            try {
+                                Thread.sleep(10000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
                             }
                         }
                     }
