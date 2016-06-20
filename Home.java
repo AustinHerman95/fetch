@@ -20,12 +20,14 @@ public class Home extends Activity {
     public static final String TAG = "HomeActivity";
     public static boolean flash;
     public static int sensitivity;
+    public static boolean appOn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
+        appOn = true;
         flash = true;
         sensitivity = 0;
 
@@ -52,10 +54,12 @@ public class Home extends Activity {
                 sensitivityText.setText(getString(R.string.sensitivity, progress));
 
                 //Start screenLockService with new sensitivity setting
-                Context context = getApplicationContext();
-                Intent SLS = new Intent(context, ScreenLockService.class);
-                SLS.putExtra("SENSITIVITY", sensitivity);
-                context.startService(SLS);
+                if(appOn) {
+                    Context context = getApplicationContext();
+                    Intent SLS = new Intent(context, ScreenLockService.class);
+                    SLS.putExtra("SENSITIVITY", sensitivity);
+                    context.startService(SLS);
+                }
             }
             //the next two should probably have some implementation, still figuring out what to put there
             //when the user has control of the slider
@@ -81,6 +85,7 @@ public class Home extends Activity {
             //the ON/OFF check box - works I think, doesn't throw any exceptions
             case R.id.appOnBox:
                 if (checked){
+                    appOn = true;
                     //Start the Screen Lock Service
                     Intent SLS = new Intent(this, ScreenLockService.class);
                     SLS.setAction("com.example.fetch1.ScreenLockService");
@@ -90,6 +95,7 @@ public class Home extends Activity {
                     Log.d(TAG, "Started SLS");
                 }
                 else{
+                    appOn = false;
                     //Stop the Screen Lock Service
                     Intent intent = new Intent(getApplicationContext(), ScreenLockService.class);
                     intent.addCategory(TAG);
@@ -100,24 +106,28 @@ public class Home extends Activity {
             //the flash light check box *does NOT work - check issues on github
             case R.id.flashBox:
                 if (checked){
-                    //set up new intent with flash
-                    flash = true;
-                    Context context = getApplicationContext();
-                    Intent SLS = new Intent(context, ScreenLockService.class);
-                    SLS.putExtra("FLASH", flash);
-                    SLS.putExtra("SENSITIVITY", sensitivity);
-                    context.startService(SLS);
-                    Log.d(TAG, "Flash is on");
+                    if(appOn) {
+                        //set up new intent with flash
+                        flash = true;
+                        Context context = getApplicationContext();
+                        Intent SLS = new Intent(context, ScreenLockService.class);
+                        SLS.putExtra("FLASH", flash);
+                        SLS.putExtra("SENSITIVITY", sensitivity);
+                        context.startService(SLS);
+                        Log.d(TAG, "Flash is on");
+                    }
                 }
                 else {
-                    //set up new intent with no flash
-                    flash = false;
-                    Context context = getApplicationContext();
-                    Intent SLS = new Intent(context, ScreenLockService.class);
-                    SLS.putExtra("FLASH", flash);
-                    SLS.putExtra("SENSITIVITY", sensitivity);
-                    context.startService(SLS);
-                    Log.d(TAG, "Flash is off");
+                    if(appOn) {
+                        //set up new intent with no flash
+                        flash = false;
+                        Context context = getApplicationContext();
+                        Intent SLS = new Intent(context, ScreenLockService.class);
+                        SLS.putExtra("FLASH", flash);
+                        SLS.putExtra("SENSITIVITY", sensitivity);
+                        context.startService(SLS);
+                        Log.d(TAG, "Flash is off");
+                    }
                 }
                 break;
         }
