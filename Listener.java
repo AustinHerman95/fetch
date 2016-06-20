@@ -45,14 +45,6 @@ public class Listener extends IntentService {
         flash = extra.getBoolean("FLASH");
         mSensitivity = extra.getInt("SENSITIVITY");
 
-        Handler handler = new Handler() {
-            @Override
-            public void handleMessage(Message msg){
-                clapDetected();
-            }
-        };
-
-
         //set up new audio factory and percussion values
         AudioDispatcher mDispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
         double threshold = 8;
@@ -79,6 +71,7 @@ public class Listener extends IntentService {
 
         while(run){
             if(!audioDispatcher.isAlive()){
+                Log.d(TAG, "Dispatcher thread was stopped, restarting!");
                 audioDispatcher.start();
             }
         }
