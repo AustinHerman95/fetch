@@ -25,25 +25,13 @@ public class ScreenLockService extends IntentService {
     public static final String TAG = "ScreenLockService";
     private boolean flash;
     private int sensitivity;
+    private int threshold;
+    private static boolean threadStopped;
+    private static boolean checkScreenAlive;
 
     public ScreenLockService() {
         super("ScreenLockService");
     }
-
-    /*final Handler handler = new Handler() {
-        @Override
-        public void handleMessage(Message msg){
-            Bundle bundle = msg.getData();
-            Boolean screenState = bundle.getBoolean("ScreenState");
-            if(screenState){
-                startListener();
-                stopFlag = true;
-            }
-            else if(!screenState){
-                stopListener();
-            }
-        }
-    };*/
 
     @Override
     protected void onHandleIntent(Intent intent) {
@@ -51,7 +39,9 @@ public class ScreenLockService extends IntentService {
         Bundle extra = intent.getExtras();
         flash = extra.getBoolean("FLASH");
         sensitivity = extra.getInt("SENSITIVITY");
-        boolean checkScreenAlive;
+        threshold = extra.getInt("THRESHOLD");
+        checkScreenAlive = true;
+        threadStopped = false;
 
         //start a new thread to check if the screen is locked
         Thread checkScreen = new Thread(
@@ -62,6 +52,12 @@ public class ScreenLockService extends IntentService {
                         Boolean lockInput = false;
 
                         while(!Thread.interrupted()) {
+
+                            if(threadStopped){
+                                Log.d(TAG, "Stopping SLS thread");
+                                checkScreenAlive = false;
+                                return;
+                            }
 
                             KeyguardManager firstKeyManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
                             if (firstKeyManager.inKeyguardRestrictedInputMode()) {
@@ -107,7 +103,6 @@ public class ScreenLockService extends IntentService {
         checkScreen.setName("checkScreen");
         Log.d(TAG, "Starting SLS thread");
         checkScreen.start();
-        checkScreenAlive = true;
 
         while(checkScreenAlive){
             if(!checkScreen.isAlive()){
@@ -123,6 +118,7 @@ public class ScreenLockService extends IntentService {
             Intent listenerIntent = new Intent(this, Listener.class);
             listenerIntent.putExtra("FLASH", flash);
             listenerIntent.putExtra("SENSITIVITY", sensitivity);
+            listenerIntent.putExtra("THRESHOLD", threshold);
             startService(listenerIntent);
         }
     }
@@ -149,6 +145,7 @@ public class ScreenLockService extends IntentService {
     @Override
     public void onDestroy(){
         Log.d(TAG, "Destroying SLS");
+        threadStopped = true;
         super.onDestroy();
     }
 
