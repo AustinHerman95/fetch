@@ -4,12 +4,11 @@ import android.app.IntentService;
 import android.content.Intent;
 import android.content.Context;
 import android.hardware.Camera;
+import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.os.Vibrator;
 import android.util.Log;
 
@@ -27,8 +26,6 @@ import be.tarsos.dsp.onsets.PercussionOnsetDetector;
  */
 public class Listener extends IntentService {
 
-    public static int SAMPLE_RATE = 1024;
-    public static int BUFFER_OVERLAP = 512;
     public static String TAG = "Listener";
     private boolean flash;
 
@@ -37,23 +34,28 @@ public class Listener extends IntentService {
     }
 
     protected void onHandleIntent(Intent intent) {
-        boolean run = true;
-        int mSensitivity;
+        Log.d(TAG, "Starting Listener");
+
+        AudioManager audioManager = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE);
+        String sampleRate = audioManager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
+        String framesPerBuffer = audioManager.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER);
+        Log.d(TAG, "FPB: " + sampleRate + " Sample rate: " + framesPerBuffer);
+
+        int SAMPLE_RATE = Integer.parseInt(sampleRate);
+        int BUFFER_SIZE = Integer.parseInt(framesPerBuffer);
+        int BUFFER_OVERLAP = 0;
 
         //get the sensitivity and flash values
         Bundle extra = intent.getExtras();
         flash = extra.getBoolean("FLASH");
-        mSensitivity = extra.getInt("SENSITIVITY");
+        double sensitivity = extra.getInt("SENSITIVITY");
+        double threshold = extra.getInt("THRESHOLD");
 
-        //set up new audio factory and percussion values
-        AudioDispatcher mDispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
-        double threshold = 8;
-        double sensitivity = (int) mSensitivity;
+        AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(SAMPLE_RATE, BUFFER_SIZE, BUFFER_OVERLAP);
 
-        //create percussion detector object with instructions for when a clap is heard
-        PercussionOnsetDetector mPercussionDetector = new PercussionOnsetDetector(22050, 1024,
-                //if a clap was heard do this:
+        PercussionOnsetDetector mPercussionDetector = new PercussionOnsetDetector(SAMPLE_RATE, BUFFER_SIZE,
                 new OnsetHandler() {
+
                     @Override
                     public void handleOnset(double time, double salience) {
                         Log.d(TAG, "Clap detected!");
@@ -61,26 +63,16 @@ public class Listener extends IntentService {
                     }
                 }, sensitivity, threshold);
 
-        //add object to audio processor
-        mDispatcher.addAudioProcessor(mPercussionDetector);
-        //start a thread to begin listening
-        Thread audioDispatcher = new Thread(mDispatcher);
+        dispatcher.addAudioProcessor(mPercussionDetector);
+        Thread audioDispatcher = new Thread(dispatcher);
         audioDispatcher.setName("Audio Dispatcher Thread");
         Log.d(TAG, "Starting dispatcher thread");
         audioDispatcher.start();
 
-        while(run){
-            if(!audioDispatcher.isAlive()){
-                Log.d(TAG, "Dispatcher thread was stopped, restarting!");
-                audioDispatcher.start();
-            }
-        }
     }
 
     void clapDetected(){
-        //if the flash value is true
-        //these methods/classes are deprecated but will still work
-        //we want to build for low API so more users can use the app of course
+
         if(flash){
             Log.d(TAG, "Triggering flash");
             Camera cam = Camera.open();
@@ -88,29 +80,36 @@ public class Listener extends IntentService {
             p.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
             cam.setParameters(p);
             cam.startPreview();
+            cam.stopPreview();
+            cam.release();
         }
 
-        Log.d(TAG, "Triggering vibrator - giggity");
+        Log.d(TAG, "Triggering vibrator");
         //set off the vibrator - giggity
         Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
-        // Vibrate for 500 milliseconds
-        v.vibrate(500);
+        // Vibrate pattern
+        long pattern[] = {0, 1000, 500, 1000, 500, 1000};
+        v.vibrate(pattern, -1);
 
         //try to set off a notification ringtone
         try {
-            Log.d(TAG, "Attempting ringtone alarm");
+            Log.d(TAG, "Ringtone triggered");
             Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
             Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
             r.play();
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
+    void startNextActivity(){
+        Log.d(TAG, "Starting phone found activity");
+        Intent nextIntent = new Intent(this, PhoneFound.class);
+        startActivity(nextIntent);
+    }
     @Override
     public void onDestroy(){
-        Log.i(TAG, "Destroying Listener");
+        Log.d(TAG, "Destroying Listener");
         super.onDestroy();
     }
 }
