@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.[USER].fetch1">
+    package="com.example.overlordsupreme.fetch1">
 
-    <uses-permission android:name="android.permission.FLASHLIGHT"/>
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-feature android:name="android.hardware.camera2"/>
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.FLASHLIGHT" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature android:name="android.hardware.camera2" />
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="true"
@@ -30,17 +33,19 @@
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.example.[USER].fetch1.Home" />
+                android:value="com.example.overlordsupreme.fetch1.Home" />
         </activity>
 
         <service
             android:name=".ScreenLockService"
-            android:process=":ScreenLockService"
-            android:exported="false" />
+            android:exported="false"
+            android:process=":ScreenLockService" />
         <service
             android:name=".Listener"
-            android:process=":Listener"
-            android:exported="false"/>
+            android:exported="false"
+            android:process=":Listener" />
+
+        <activity android:name=".PhoneFound"></activity>
     </application>
 
 </manifest>
